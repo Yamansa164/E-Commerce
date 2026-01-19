@@ -29,7 +29,7 @@ export class CartController {
 
   @Get()
   getCart(@Req() req) {
-    const userId = req.userId;
+    const userId = req.user.id;
     return this.cartService.getCart(userId);
   }
 

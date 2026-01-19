@@ -7,6 +7,6 @@ export class OrderController {
 
   @Get()
   getOrders(@Req() req) {
-    return this.orderService.getOrders(req.userId);
+    return this.orderService.getOrders(req.user.id);
   }
 }
