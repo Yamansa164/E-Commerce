@@ -13,15 +13,15 @@ export class CategoryExistsRule implements ValidatorConstraintInterface {
   constructor(private readonly prisma: PrismaService) {}
 
   async validate(categoryId: number, args: ValidationArguments) {
+    console.log(`hhhhhhhh ${categoryId}`);
+
     if (categoryId == null) {
       return false;
     }
 
-
     const category = await this.prisma.category.findFirst({
       where: { id: categoryId },
     });
-    console.log(`hhhhhhhh ${category}`);
 
     return category != null;
   }

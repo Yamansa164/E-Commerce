@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma_service';
 import { CartService } from '../cart/cart.service';
 
@@ -21,7 +21,6 @@ export class OrderService {
 
     const order = this.prismaService.order.create({
       data: {
-      
         userId,
         totalPrice,
         orderItems: {
@@ -34,14 +33,40 @@ export class OrderService {
       },
       include: { orderItems: true },
     });
-    await this.cartService.deleteCart(cart.id);
+    await this.cartService.deleteCartItem(cart.id);
     return order;
   }
 
-  async getOrders(userId: number) {
-    return this.prismaService.order.findMany({
-      where: { userId },
-      include: { orderItems: { include: { product: true } } },
-    });
+  async getOrders(userId: number, page = 1, perPage = 10) {
+    if (page < 1 || perPage < 1) {
+      throw new BadRequestException(
+        'Page and perPage must be positive numbers',
+      );
+    }
+
+    const skip = ( Number(page) - 1) * perPage;
+
+    const [total, orders] = await this.prismaService.$transaction([
+      this.prismaService.order.count({ where: { userId } }),
+      this.prismaService.order.findMany({
+        where: { userId },
+        include: { orderItems: { include: { product: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: perPage,
+      }),
+    ]);
+
+    const pageCount = Math.ceil(total / perPage);
+
+    return {
+      data: orders,
+      meta: {
+        total,
+        currentPage: Number(page),
+        limit: perPage,
+        pageCount,
+      },
+    };
   }
 }

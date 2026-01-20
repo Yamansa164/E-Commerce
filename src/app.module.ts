@@ -9,6 +9,10 @@ import { CategoryModule } from './modules/category/category.module';
 import { ProductModule } from './modules/product/product.module';
 import { CartModule } from './modules/cart/cart.module';
 import { OrderModule } from './modules/order/order.module';
+import { PrismaModule } from './prisma/prisma_module';
+import { MulterModule } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 @Module({
   imports: [
@@ -22,6 +26,8 @@ import { OrderModule } from './modules/order/order.module';
     CategoryModule,
     CartModule,
     OrderModule,
+    PrismaModule,
+
   ],
   controllers: [],
   providers: [

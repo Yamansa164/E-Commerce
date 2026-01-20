@@ -4,13 +4,16 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from '../user/user.service';
-import { compare } from 'bcrypt';
+import { compare, hashSync } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { CreateUserDto } from './dto/create-user.dto';
+import { PrismaService } from 'src/prisma/prisma_service';
 
 @Injectable()
 export class AuthService {
   constructor(
     readonly userService: UserService,
+    readonly prismaService: PrismaService,
 
     private readonly jwtService: JwtService,
   ) {}
@@ -47,5 +50,13 @@ export class AuthService {
       id: userId,
       role: user.role,
     };
+  }
+
+  register(createUserDto: CreateUserDto) {
+    const hashedPassword = hashSync(createUserDto.password, 10);
+    createUserDto.password = hashedPassword;
+    const user = this.prismaService.user.create({ data: createUserDto });
+
+    return user;
   }
 }

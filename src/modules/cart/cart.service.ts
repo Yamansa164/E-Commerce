@@ -12,9 +12,13 @@ export class CartService {
   ) {}
   async addToCart(userId: number, createCartDto: CreateCartDto) {
     let cart = await this.prismaService.cart.findFirst({ where: { userId } });
+   
     if (!cart) {
-      cart = await this.prismaService.cart.create({ data: { userId } });
+      cart = await this.prismaService.cart.create({
+        data: { userId },
+      });
     }
+
     await this.productService.findOne(createCartDto.productId);
 
     const existingItem = await this.prismaService.cartItem.findFirst({
@@ -60,16 +64,13 @@ export class CartService {
     });
   }
 
-  async deleteCart(cartId: number) {
+  async deleteCartItem(cartId: number) {
     
     await this.prismaService.cartItem.deleteMany({
       where: { cartId },
     });
 
-    
-    return this.prismaService.cart.delete({
-      where: { id: cartId },
-    });
+ 
   }
 
   async removeItem(itemId: number) {

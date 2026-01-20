@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { PrismaService } from 'src/prisma/prisma_service';
@@ -10,14 +14,49 @@ export class ProductService {
     readonly prismaService: PrismaService,
     readonly categoryService: CategoryService,
   ) {}
-  create(createProductDto: CreateProductDto) {
+  create(createProductDto: CreateProductDto, file?: any) {
+    if (file) {
+      const imageUrl = `/uploads/products/${file.filename}`;
+      createProductDto.imageUrl = imageUrl;
+    }
     return this.prismaService.product.create({ data: createProductDto });
   }
 
-  findAll() {
-    return this.prismaService.product.findMany({
-      select: { id: true, name: true },
-    });
+  async find(categoryId?: number, page = 1, perPage = 10) {
+    if (page < 1 || perPage < 1) {
+      throw new BadRequestException(
+        'Page and perPage must be positive numbers',
+      );
+    }
+    const skip = (Number(page) - 1) * perPage;
+
+    if (categoryId) {
+      const category = await this.categoryService.findOne(categoryId);
+      if (!category) throw new NotFoundException('category not found');
+    }
+
+    const [total, products] = await this.prismaService.$transaction([
+      this.prismaService.product.count({
+        where: { categoryId },
+      }),
+      this.prismaService.product.findMany({
+        where: { categoryId },
+        select: { id: true, name: true, imageUrl: true, price: true },
+        take: perPage,
+        skip,
+      }),
+    ]);
+    const pageCount = Math.ceil(total / perPage);
+
+    return {
+      data: products,
+      meta: {
+        total,
+        currentPage: Number(page),
+        limit: perPage,
+        pageCount,
+      },
+    };
   }
 
   async findOne(id: number) {
@@ -30,7 +69,6 @@ export class ProductService {
   }
 
   async update(id: number, updateProductDto: UpdateProductDto) {
-   
     await this.findOne(id);
 
     return this.prismaService.product.update({
@@ -41,16 +79,5 @@ export class ProductService {
 
   remove(id: number) {
     return `This action removes a #${id} product`;
-  }
-
-  async findByCategory(categoryId: number) {
-    const category = await this.categoryService.findOne(categoryId);
-
-    if (!category) throw new NotFoundException('category not found ');
-    const products = await this.prismaService.product.findMany({
-      where: { categoryId: categoryId },
-    });
-
-    return products;
   }
 }

@@ -1,5 +1,13 @@
-import { IsNotEmpty, IsNumber, IsString, Validate } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Validate,
+  IsOptional,
+  IsUrl,
+} from 'class-validator';
 import { CategoryExistsRule } from '../validation/category.exist.validation';
+import { Type } from 'class-transformer';
 
 export class CreateProductDto {
   @IsString()
@@ -9,9 +17,16 @@ export class CreateProductDto {
   description: string;
 
   @IsNumber()
+  @Type(() => Number)
   price: number;
 
-  @IsNumber()
   @Validate(CategoryExistsRule)
+  @IsNumber()
+  @Type(() => Number)
   categoryId: number;
+
+  @IsOptional()
+  @IsString()
+  @IsUrl()
+  imageUrl?: string;
 }

@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   HttpCode,
   HttpStatus,
@@ -9,6 +10,7 @@ import {
 import { AuthService } from './auth.service';
 import { LoginGuard } from './guards/login.guard';
 import { Public } from './decorator/public.decorator';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Public()
 @Controller('auth')
@@ -20,5 +22,11 @@ export class AuthController {
   @Post('login')
   async login(@Request() req) {
     return req.user;
+  }
+
+  @Public()
+  @Post('register')
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.authService.register(createUserDto);
   }
 }
