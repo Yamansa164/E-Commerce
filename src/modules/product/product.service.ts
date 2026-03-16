@@ -3,8 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { FilterProductsDto } from './dto/filter-products.dto';
 import { PrismaService } from 'src/prisma/prisma_service';
 import { CategoryService } from '../category/category.service';
 
@@ -14,34 +16,65 @@ export class ProductService {
     readonly prismaService: PrismaService,
     readonly categoryService: CategoryService,
   ) {}
-  create(createProductDto: CreateProductDto, file?: any) {
+
+  create(createProductDto: CreateProductDto, file?: Express.Multer.File) {
     if (file) {
       const imageUrl = `/uploads/products/${file.filename}`;
       createProductDto.imageUrl = imageUrl;
     }
+
     return this.prismaService.product.create({ data: createProductDto });
   }
 
-  async find(categoryId?: number, page = 1, perPage = 10) {
+  async find(filters: FilterProductsDto) {
+    const page = filters.page ?? 1;
+    const perPage = filters.perPage ?? 10;
+    const categoryId = filters.categoryId ?? filters.category_id;
+
     if (page < 1 || perPage < 1) {
       throw new BadRequestException(
         'Page and perPage must be positive numbers',
       );
     }
-    const skip = (Number(page) - 1) * perPage;
+
+    const skip = (page - 1) * perPage;
+
+    const where: Prisma.ProductWhereInput = {};
 
     if (categoryId) {
-      const category = await this.categoryService.findOne(categoryId);
-      if (!category) throw new NotFoundException('category not found');
+      await this.categoryService.findOne(categoryId);
+      where.categoryId = categoryId;
     }
+
+    if (filters.search) {
+      where.OR = [
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+      where.price = {
+        gte: filters.minPrice,
+        lte: filters.maxPrice,
+      };
+    }
+
+    const orderBy: Prisma.ProductOrderByWithRelationInput =
+      filters.sort === 'priceAsc'
+        ? { price: 'asc' }
+        : filters.sort === 'priceDesc'
+          ? { price: 'desc' }
+          : { id: 'desc' };
 
     const [total, products] = await this.prismaService.$transaction([
       this.prismaService.product.count({
-        where: { categoryId },
+        where,
       }),
       this.prismaService.product.findMany({
-        where: { categoryId },
+        where,
         select: { id: true, name: true, imageUrl: true, price: true },
+        orderBy,
         take: perPage,
         skip,
       }),
@@ -60,9 +93,10 @@ export class ProductService {
   }
 
   async findOne(id: number) {
-    const product = await this.prismaService.product.findFirst({
+    const product = await this.prismaService.product.findUnique({
       where: { id },
     });
+
     if (!product) throw new NotFoundException('product not found');
 
     return product;
@@ -77,7 +111,8 @@ export class ProductService {
     });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  async remove(id: number) {
+    await this.findOne(id);
+    return this.prismaService.product.delete({ where: { id } });
   }
 }

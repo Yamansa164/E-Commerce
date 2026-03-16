@@ -7,10 +7,10 @@ import {
   Param,
   Delete,
   Req,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 import { CreateCartDto } from './dto/create-cart.dto';
-import { UpdateCartDto } from './dto/update-cart.dto';
 import { OrderService } from '../order/order.service';
 
 @Controller('cart')
@@ -21,32 +21,40 @@ export class CartController {
   ) {}
 
   @Post('add')
-  addToCart(@Req() req, @Body() createCartDto: CreateCartDto) {
+  addToCart(
+    @Req() req: { user: { id: number } },
+    @Body() createCartDto: CreateCartDto,
+  ) {
     const userId = req.user.id;
 
     return this.cartService.addToCart(userId, createCartDto);
   }
 
   @Get()
-  getCart(@Req() req) {
+  getCart(@Req() req: { user: { id: number } }) {
     const userId = req.user.id;
     return this.cartService.getCart(userId);
   }
 
   @Delete('item/:itemId')
-  removeItem(@Param('itemId') itemId: number) {
-    return this.cartService.removeItem(itemId);
+  removeItem(
+    @Req() req: { user: { id: number } },
+    @Param('itemId', ParseIntPipe) itemId: number,
+  ) {
+    return this.cartService.removeItem(req.user.id, itemId);
   }
+
   @Patch('item/:itemId')
   updateQuantity(
-    @Param('itemId') itemId: number,
+    @Req() req: { user: { id: number } },
+    @Param('itemId', ParseIntPipe) itemId: number,
     @Body() body: { quantity: number },
   ) {
-    return this.cartService.updateQuantity(itemId, body.quantity);
+    return this.cartService.updateQuantity(req.user.id, itemId, body.quantity);
   }
 
   @Post('checkOut')
-  checkOut(@Req() req) {
+  checkOut(@Req() req: { user: { id: number } }) {
     return this.orderService.checkOut(req.user.id);
   }
 }

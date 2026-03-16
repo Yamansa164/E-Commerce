@@ -5,8 +5,16 @@ import {
   Query,
   ParseIntPipe,
   DefaultValuePipe,
+  Post,
+  Body,
+  BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
+import { Role } from '@prisma/client';
+import { Roles } from '../auth/decorator/role.decorator';
+import { RolesGuard } from '../auth/guards/role.guard';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
 @Controller('order')
 export class OrderController {
@@ -20,5 +28,14 @@ export class OrderController {
   ) {
     const userId = req.user.id;
     return this.orderService.getOrders(userId, page, perPage);
+  }
+
+  @Roles([Role.admin])
+  @UseGuards(RolesGuard)
+  @Post('/update-status')
+  updateOrderStatus(@Body() body: UpdateOrderStatusDto) {
+
+    
+    return this.orderService.updateOrderStatus(body);
   }
 }

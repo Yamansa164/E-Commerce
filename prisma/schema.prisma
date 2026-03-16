@@ -47,6 +47,7 @@ model Product {
 model Order {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
+  status   OrderStatus @default(pending)
 
   user   User @relation(fields: [userId], references: [id])
   userId Int
@@ -86,3 +87,11 @@ enum Role {
   user
   admin
 }
+
+
+enum OrderStatus {
+  pending
+  completed
+  cancelled
+}
+

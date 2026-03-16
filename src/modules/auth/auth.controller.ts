@@ -12,15 +12,15 @@ import { LoginGuard } from './guards/login.guard';
 import { Public } from './decorator/public.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 
-@Public()
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @UseGuards(LoginGuard)
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(@Request() req) {
+  async login(@Request() req: { user: { userId: number; token: string } }) {
     return req.user;
   }
 

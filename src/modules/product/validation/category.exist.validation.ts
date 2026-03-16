@@ -13,7 +13,6 @@ export class CategoryExistsRule implements ValidatorConstraintInterface {
   constructor(private readonly prisma: PrismaService) {}
 
   async validate(categoryId: number, args: ValidationArguments) {
-    console.log(`hhhhhhhh ${categoryId}`);
 
     if (categoryId == null) {
       return false;

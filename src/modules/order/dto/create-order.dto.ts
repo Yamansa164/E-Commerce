@@ -1,14 +1,15 @@
-import { NullTypes } from '@prisma/client/runtime/client';
-import { IsEAN, IsEmpty, IsInt, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsNotEmpty, IsOptional, Min } from 'class-validator';
 
 export class CreateOrderDto {
   @IsNotEmpty()
   @IsInt()
-  productId :number;
-
-
+  @Type(() => Number)
+  productId: number;
 
   @IsOptional()
-  @IsNumber()
-  quantity:number;
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  quantity?: number;
 }

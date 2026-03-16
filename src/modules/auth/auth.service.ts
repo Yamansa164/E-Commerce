@@ -1,10 +1,9 @@
 import {
   Injectable,
-  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from '../user/user.service';
-import { compare, hashSync } from 'bcrypt';
+import { compare, hash } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaService } from 'src/prisma/prisma_service';
@@ -21,21 +20,15 @@ export class AuthService {
     const user = await this.userService.findByEmail(email);
 
     if (!user) throw new UnauthorizedException('user not found');
-    else {
-      const isPasswordMatch = await compare(password, user.password);
-      if (!isPasswordMatch) throw new UnauthorizedException('user not found');
-      else {
-        const loginResponse = await this.generateToken(user.id);
-        return loginResponse;
-      }
-    }
+
+    const isPasswordMatch = await compare(password, user.password);
+    if (!isPasswordMatch) throw new UnauthorizedException('user not found');
+
+    return this.generateToken(user.id);
   }
 
   async generateToken(userId: number) {
-    console.log(`hhhhhhhhhhhh ${userId}`);
-
     const token = this.jwtService.sign({ sub: userId });
-    console.log('hhhhhhhhhhhh11');
 
     return {
       userId,
@@ -43,7 +36,7 @@ export class AuthService {
     };
   }
 
-  async validJwtUser(userId: number) {
+  async validateJwtUser(userId: number) {
     const user = await this.userService.findById(userId);
     if (!user) throw new UnauthorizedException();
     return {
@@ -52,10 +45,14 @@ export class AuthService {
     };
   }
 
-  register(createUserDto: CreateUserDto) {
-    const hashedPassword = hashSync(createUserDto.password, 10);
-    createUserDto.password = hashedPassword;
-    const user = this.prismaService.user.create({ data: createUserDto });
+  async register(createUserDto: CreateUserDto) {
+    const hashedPassword = await hash(createUserDto.password, 10);
+    const user = this.prismaService.user.create({
+      data: {
+        ...createUserDto,
+        password: hashedPassword,
+      },
+    });
 
     return user;
   }

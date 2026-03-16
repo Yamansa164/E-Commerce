@@ -2,30 +2,26 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-  UseGuards,
 } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
 import { PrismaService } from 'src/prisma/prisma_service';
-import { Role } from '@prisma/client';
-import { RolesGuard } from 'src/modules/auth/guards/role.guard';
-import { Roles } from 'src/modules/auth/decorator/role.decorator';
 
 @Injectable()
 export class CategoryService {
-  constructor(readonly prismaSerivce: PrismaService) {}
+  constructor(readonly prismaService: PrismaService) {}
+
   create(createCategoryDto: CreateCategoryDto) {
-    return this.prismaSerivce.category.create({ data: createCategoryDto });
+    return this.prismaService.category.create({ data: createCategoryDto });
   }
 
   findAll() {
-    return this.prismaSerivce.category.findMany();
+    return this.prismaService.category.findMany();
   }
 
   async remove(id: number) {
-    const category = await this.prismaSerivce.category.findUnique({
+    const category = await this.prismaService.category.findUnique({
       where: { id },
-      include: { products: true }, // 👈 load related products
+      include: { products: true },
     });
 
     if (!category) {
@@ -38,12 +34,16 @@ export class CategoryService {
       );
     }
 
-    return this.prismaSerivce.category.delete({ where: { id } });
+    return this.prismaService.category.delete({ where: { id } });
   }
 
-  findOne(id: number) {
-    const category = this.prismaSerivce.category.findFirst({ where: { id } });
+  async findOne(id: number) {
+    const category = await this.prismaService.category.findFirst({
+      where: { id },
+    });
+
     if (!category) throw new NotFoundException('category not found');
+
     return category;
   }
 }

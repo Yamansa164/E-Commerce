@@ -1,6 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCartDto } from './dto/create-cart.dto';
-import { UpdateCartDto } from './dto/update-cart.dto';
 import { PrismaService } from 'src/prisma/prisma_service';
 import { ProductService } from '../product/product.service';
 
@@ -10,9 +13,10 @@ export class CartService {
     readonly prismaService: PrismaService,
     readonly productService: ProductService,
   ) {}
+
   async addToCart(userId: number, createCartDto: CreateCartDto) {
     let cart = await this.prismaService.cart.findFirst({ where: { userId } });
-   
+
     if (!cart) {
       cart = await this.prismaService.cart.create({
         data: { userId },
@@ -20,6 +24,8 @@ export class CartService {
     }
 
     await this.productService.findOne(createCartDto.productId);
+
+    const quantityToAdd = createCartDto.quantity ?? 1;
 
     const existingItem = await this.prismaService.cartItem.findFirst({
       where: { cartId: cart.id, productId: createCartDto.productId },
@@ -40,19 +46,23 @@ export class CartService {
         data: {
           cartId: cart.id,
           productId: createCartDto.productId,
-          quantity: createCartDto.quantity,
+          quantity: quantityToAdd,
           price: product.price,
         },
       });
     }
   }
 
-  async findCartItem(id: number) {
+  async findCartItem(userId: number, id: number) {
     const cartItem = await this.prismaService.cartItem.findFirst({
-      where: { id },
+      where: {
+        id,
+        cart: { userId },
+      },
     });
-    if (!cartItem)
+    if (!cartItem) {
       throw new NotFoundException('this product is not on your cart');
+    }
 
     return cartItem;
   }
@@ -65,21 +75,22 @@ export class CartService {
   }
 
   async deleteCartItem(cartId: number) {
-    
     await this.prismaService.cartItem.deleteMany({
       where: { cartId },
     });
-
- 
   }
 
-  async removeItem(itemId: number) {
-    await this.findCartItem(itemId);
+  async removeItem(userId: number, itemId: number) {
+    await this.findCartItem(userId, itemId);
     return this.prismaService.cartItem.delete({ where: { id: itemId } });
   }
 
-  async updateQuantity(itemId: number, quantity: number) {
-    await this.findCartItem(itemId);
+  async updateQuantity(userId: number, itemId: number, quantity: number) {
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      throw new BadRequestException('quantity must be a positive integer');
+    }
+
+    await this.findCartItem(userId, itemId);
 
     return this.prismaService.cartItem.update({
       where: { id: itemId },

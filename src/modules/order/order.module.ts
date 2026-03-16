@@ -1,7 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { OrderController } from './order.controller';
-import { PrismaService } from 'src/prisma/prisma_service';
 import { CartModule } from '../cart/cart.module';
 
 @Module({
