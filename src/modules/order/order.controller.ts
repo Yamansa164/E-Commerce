@@ -7,7 +7,6 @@ import {
   DefaultValuePipe,
   Post,
   Body,
-  BadRequestException,
   UseGuards,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
@@ -34,8 +33,12 @@ export class OrderController {
   @UseGuards(RolesGuard)
   @Post('/update-status')
   updateOrderStatus(@Body() body: UpdateOrderStatusDto) {
-
-    
     return this.orderService.updateOrderStatus(body);
+  }
+
+  @Get('/cancel')
+  cancelOrder(@Req() req, @Query('orderId', ParseIntPipe) orderId: number) {
+    const userId = req.user.id;
+    return this.orderService.cancelOrder(userId, orderId);
   }
 }

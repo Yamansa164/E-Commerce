@@ -1,15 +1,31 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma_service';
 import { CartService } from '../cart/cart.service';
 import { OrderStatus } from '@prisma/client';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { stat } from 'fs';
+
+const ORDER_STATUS_TRANSITIONS: Record<
+  OrderStatus,
+  ReadonlyArray<OrderStatus>
+> = {
+  pending: ['paid', 'cancelled'],
+  paid: ['shipped', 'cancelled'],
+  shipped: ['delivered'],
+  delivered: ['completed'],
+  completed: [],
+  cancelled: [],
+};
 
 @Injectable()
 export class OrderService {
   constructor(
     readonly prismaService: PrismaService,
     readonly cartService: CartService,
-
   ) {}
 
   async checkOut(userId: number) {
@@ -80,6 +96,17 @@ export class OrderService {
     };
   }
 
+  private assertValidStatusTransition(current: OrderStatus, next: OrderStatus) {
+    if (current === next) return;
+
+    const allowedNext = ORDER_STATUS_TRANSITIONS[current] ?? [];
+    const ok = allowedNext.includes(next);
+    if (ok) return;
+
+    throw new BadRequestException(
+      `Invalid status transition: ${current} -> ${next}. Allowed next: ${allowedNext.join(', ') || 'none'}`,
+    );
+  }
 
   async updateOrderStatus(body: UpdateOrderStatusDto) {
     const { orderId, status } = body;
@@ -90,9 +117,27 @@ export class OrderService {
       throw new NotFoundException('Order not found');
     }
 
+    this.assertValidStatusTransition(order.status, status);
+
     return this.prismaService.order.update({
       where: { id: orderId },
       data: { status },
+    });
+  }
+  async cancelOrder(userId: number, orderId: number) {
+    const order = await this.prismaService.order.findFirst({
+      where: { userId, id: orderId },
+    });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    if (order.status !== OrderStatus.pending) {
+      throw new BadRequestException('Only pending orders can be cancelled');
+    }
+
+    return this.prismaService.order.update({
+      where: { id: orderId, userId },
+      data: { status: OrderStatus.cancelled },
     });
   }
 }
