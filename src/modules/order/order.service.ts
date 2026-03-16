@@ -7,7 +7,9 @@ import { PrismaService } from 'src/prisma/prisma_service';
 import { CartService } from '../cart/cart.service';
 import { OrderStatus } from '@prisma/client';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import { stat } from 'fs';
+import {
+  normalizePagination,
+} from 'src/common/pagination';
 
 const ORDER_STATUS_TRANSITIONS: Record<
   OrderStatus,
@@ -20,6 +22,7 @@ const ORDER_STATUS_TRANSITIONS: Record<
   completed: [],
   cancelled: [],
 };
+
 
 @Injectable()
 export class OrderService {
@@ -64,13 +67,14 @@ export class OrderService {
   }
 
   async getOrders(userId: number, page = 1, perPage = 10) {
-    if (page < 1 || perPage < 1) {
+    if (!Number.isFinite(page) || !Number.isFinite(perPage)) {
       throw new BadRequestException(
         'Page and perPage must be positive numbers',
       );
     }
 
-    const skip = (page - 1) * perPage;
+    const { page: normalizedPage, perPage: normalizedPerPage, skip, take } =
+      normalizePagination({ page, perPage, maxPerPage: 100 });
 
     const [total, orders] = await this.prismaService.$transaction([
       this.prismaService.order.count({ where: { userId } }),
@@ -79,20 +83,15 @@ export class OrderService {
         include: { orderItems: { include: { product: true } } },
         orderBy: { createdAt: 'desc' },
         skip,
-        take: perPage,
+        take,
       }),
     ]);
 
-    const pageCount = Math.ceil(total / perPage);
-
     return {
       data: orders,
-      meta: {
-        total,
-        currentPage: page,
-        limit: perPage,
-        pageCount,
-      },
+      total,
+      page: normalizedPage,
+      perPage: normalizedPerPage,
     };
   }
 
@@ -136,7 +135,7 @@ export class OrderService {
     }
 
     return this.prismaService.order.update({
-      where: { id: orderId, userId },
+      where: { id: orderId },
       data: { status: OrderStatus.cancelled },
     });
   }

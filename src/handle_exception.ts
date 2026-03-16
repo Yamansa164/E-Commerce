@@ -13,14 +13,12 @@ import {
   PrismaClientUnknownRequestError,
   PrismaClientValidationError,
 } from '@prisma/client/runtime/client';
-import { HttpAdapterHost } from '@nestjs/core';
-import { ValidationError } from 'class-validator';
 import { Prisma } from '@prisma/client';
+import { fail } from 'src/common/base-response';
 
 export interface MyResponseObj {
   statusCode: number;
-  timestamp: string;
-  path: string;
+
   response: string | object;
 }
 
@@ -37,9 +35,7 @@ export class AllExceptionFilter implements ExceptionFilter {
 
     const myResponseObj: MyResponseObj = {
       statusCode: 500,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      response: 'internal server error',
+        response: 'internal server error',
     };
 
     if (exception instanceof HttpException) {
@@ -76,7 +72,21 @@ export class AllExceptionFilter implements ExceptionFilter {
       }
     }
 
-    response.status(myResponseObj.statusCode).json(myResponseObj);
+    const message =
+      typeof myResponseObj.response === 'string'
+        ? myResponseObj.response
+        : // Nest often returns { message: string | string[], error: string, statusCode: number }
+          (myResponseObj.response as any)?.message ?? myResponseObj.response;
+
+    response
+      .status(myResponseObj.statusCode)
+      .json(
+        fail({
+          message: Array.isArray(message) ? message.join(', ') : String(message),
+          data: null,
+          meta: null,
+        }),
+      );
 
     this.logger.error(myResponseObj);
 

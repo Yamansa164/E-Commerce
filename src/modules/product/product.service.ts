@@ -9,6 +9,11 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { FilterProductsDto } from './dto/filter-products.dto';
 import { PrismaService } from 'src/prisma/prisma_service';
 import { CategoryService } from '../category/category.service';
+import {
+  
+  normalizePagination,
+} from 'src/common/pagination';
+import { paginatedOk } from 'src/common/base-response';
 
 @Injectable()
 export class ProductService {
@@ -27,8 +32,11 @@ export class ProductService {
   }
 
   async find(filters: FilterProductsDto) {
-    const page = filters.page ?? 1;
-    const perPage = filters.perPage ?? 10;
+    const { page, perPage, skip, take } = normalizePagination({
+      page: filters.page,
+      perPage: filters.perPage,
+      maxPerPage: 100,
+    });
     const categoryId = filters.categoryId ?? filters.category_id;
 
     if (page < 1 || perPage < 1) {
@@ -36,8 +44,6 @@ export class ProductService {
         'Page and perPage must be positive numbers',
       );
     }
-
-    const skip = (page - 1) * perPage;
 
     const where: Prisma.ProductWhereInput = {};
 
@@ -75,21 +81,18 @@ export class ProductService {
         where,
         select: { id: true, name: true, imageUrl: true, price: true },
         orderBy,
-        take: perPage,
+        take,
         skip,
       }),
     ]);
-    const pageCount = Math.ceil(total / perPage);
 
-    return {
+    return paginatedOk({
+      message: 'Products retrieved successfully',
       data: products,
-      meta: {
-        total,
-        currentPage: Number(page),
-        limit: perPage,
-        pageCount,
-      },
-    };
+      total,
+      page,
+      perPage,
+    });
   }
 
   async findOne(id: number) {

@@ -7,6 +7,7 @@ import { compare, hash } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaService } from 'src/prisma/prisma_service';
+import { ok } from 'src/common/base-response';
 
 @Injectable()
 export class AuthService {
@@ -24,7 +25,7 @@ export class AuthService {
     const isPasswordMatch = await compare(password, user.password);
     if (!isPasswordMatch) throw new UnauthorizedException('user not found');
 
-    return this.generateToken(user.id);
+    return ok({data: await this.generateToken(user.id)});
   }
 
   async generateToken(userId: number) {
