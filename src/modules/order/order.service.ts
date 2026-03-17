@@ -7,22 +7,21 @@ import { PrismaService } from 'src/prisma/prisma_service';
 import { CartService } from '../cart/cart.service';
 import { OrderStatus } from '@prisma/client';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import {
-  normalizePagination,
-} from 'src/common/pagination';
+import { normalizePagination } from 'src/common/pagination';
+import { RateOrderDto } from './dto/rate-order.dto';
+import { ok } from 'src/common/base-response';
 
 const ORDER_STATUS_TRANSITIONS: Record<
   OrderStatus,
   ReadonlyArray<OrderStatus>
 > = {
-  pending: ['paid', 'cancelled'],
+  pending: ['paid', 'cancelled','completed'],
   paid: ['shipped', 'cancelled'],
   shipped: ['delivered'],
-  delivered: ['completed'],
+  delivered: ['completed'], 
   completed: [],
   cancelled: [],
 };
-
 
 @Injectable()
 export class OrderService {
@@ -73,14 +72,18 @@ export class OrderService {
       );
     }
 
-    const { page: normalizedPage, perPage: normalizedPerPage, skip, take } =
-      normalizePagination({ page, perPage, maxPerPage: 100 });
+    const {
+      page: normalizedPage,
+      perPage: normalizedPerPage,
+      skip,
+      take,
+    } = normalizePagination({ page, perPage, maxPerPage: 100 });
 
     const [total, orders] = await this.prismaService.$transaction([
       this.prismaService.order.count({ where: { userId } }),
       this.prismaService.order.findMany({
         where: { userId },
-        include: { orderItems: { include: { product: true } } },
+        include: { orderItems: { include: { product: true } }, review: true },
         orderBy: { createdAt: 'desc' },
         skip,
         take,
@@ -137,6 +140,40 @@ export class OrderService {
     return this.prismaService.order.update({
       where: { id: orderId },
       data: { status: OrderStatus.cancelled },
+    });
+  }
+
+
+   async rateOrder(userId: number, body: RateOrderDto) {
+    const order = await this.prismaService.order.findFirst({
+      where: { userId, id: body.orderId },
+      include: { review: true },
+    });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    if (order.status !== OrderStatus.completed) {
+      throw new BadRequestException('Only completed orders can be rated');
+    }
+
+    if (order.review) {
+      throw new BadRequestException('Order has already been rated');
+    }
+
+    // Create the review separately, assuming there is a Review model with orderId as a foreign key
+    const review = await this.prismaService.review.create({
+      data: {
+        userId,
+        orderId: body.orderId,
+        rating: body.rating,
+        comment: body.comment,
+      },
+    });
+
+
+    return ok({
+      message: 'Order rated successfully',
+      data: review,
     });
   }
 }

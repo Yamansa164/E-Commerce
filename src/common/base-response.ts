@@ -57,4 +57,3 @@ export function paginatedOk<TData>(args: {
     meta,
   });
 }
-

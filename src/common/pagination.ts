@@ -15,7 +15,6 @@ export type PaginationMeta = {
   nextPage: number | null;
 };
 
-
 export function normalizePagination(params: PaginationParams = {}) {
   const maxPerPage = params.maxPerPage ?? 100;
   const page = Math.max(1, Math.trunc(params.page ?? 1));
@@ -48,4 +47,3 @@ export function buildPaginationMeta(args: {
     nextPage: hasNextPage ? page + 1 : null,
   };
 }
-

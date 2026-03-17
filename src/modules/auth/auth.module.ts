@@ -11,13 +11,12 @@ import { JwtGuard } from './guards/jwt.guard';
 import { UserModule } from '../user/user.module';
 
 @Module({
-  
   controllers: [AuthController],
   providers: [
     AuthService,
     LoginStrategy,
     JwtStrategy,
-   
+
     {
       provide: APP_GUARD,
       useClass: JwtGuard,
@@ -26,7 +25,7 @@ import { UserModule } from '../user/user.module';
   imports: [
     JwtModule.registerAsync(jwtConfig.asProvider()),
     ConfigModule.forFeature(jwtConfig),
-    UserModule
+    UserModule,
   ],
 })
 export class AuthModule {}

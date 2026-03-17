@@ -16,11 +16,12 @@ model User {
   id   Int    @id @default(autoincrement())
   name String
 
-  email    String  @unique
+  email    String   @unique
   password String
-  role     Role    @default(user)
+  role     Role     @default(user)
   orders   Order[]
   carts    Cart[]
+  reviews  Review[]
 }
 
 model Category {
@@ -45,15 +46,17 @@ model Product {
 }
 
 model Order {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  status   OrderStatus @default(pending)
+  id        Int         @id @default(autoincrement())
+  createdAt DateTime    @default(now())
+  status    OrderStatus @default(pending)
 
   user   User @relation(fields: [userId], references: [id])
   userId Int
 
   orderItems OrderItem[]
   totalPrice Decimal
+  review     Review?
+  
 }
 
 model OrderItem {
@@ -78,16 +81,25 @@ model CartItem {
   cartId    Int
   cart      Cart    @relation(fields: [cartId], references: [id])
   productId Int
-  product   Product @relation(fields: [productId], references: [id],onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity  Int     @default(1)
   price     Decimal
+}
+
+model Review {
+  id      Int     @id @default(autoincrement())
+  userId  Int
+  user    User    @relation(fields: [userId], references: [id])
+  orderId Int     @unique
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  rating  Int     @default(1)
+  comment String?
 }
 
 enum Role {
   user
   admin
 }
-
 
 enum OrderStatus {
   pending
@@ -97,4 +109,3 @@ enum OrderStatus {
   completed
   cancelled
 }
-

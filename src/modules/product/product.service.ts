@@ -9,10 +9,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { FilterProductsDto } from './dto/filter-products.dto';
 import { PrismaService } from 'src/prisma/prisma_service';
 import { CategoryService } from '../category/category.service';
-import {
-  
-  normalizePagination,
-} from 'src/common/pagination';
+import { normalizePagination } from 'src/common/pagination';
 import { paginatedOk } from 'src/common/base-response';
 
 @Injectable()

@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { compare, hash } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -25,7 +22,7 @@ export class AuthService {
     const isPasswordMatch = await compare(password, user.password);
     if (!isPasswordMatch) throw new UnauthorizedException('user not found');
 
-    return ok({data: await this.generateToken(user.id)});
+    return ok({ data: await this.generateToken(user.id) });
   }
 
   async generateToken(userId: number) {

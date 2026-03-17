@@ -35,7 +35,7 @@ export class AllExceptionFilter implements ExceptionFilter {
 
     const myResponseObj: MyResponseObj = {
       statusCode: 500,
-        response: 'internal server error',
+      response: 'internal server error',
     };
 
     if (exception instanceof HttpException) {
@@ -76,19 +76,16 @@ export class AllExceptionFilter implements ExceptionFilter {
       typeof myResponseObj.response === 'string'
         ? myResponseObj.response
         : // Nest often returns { message: string | string[], error: string, statusCode: number }
-          (myResponseObj.response as any)?.message ?? myResponseObj.response;
+          ((myResponseObj.response as any)?.message ?? myResponseObj.response);
 
-    response
-      .status(myResponseObj.statusCode)
-      .json(
-        fail({
-          message: Array.isArray(message) ? message.join(', ') : String(message),
-          data: null,
-          meta: null,
-        }),
-      );
+    response.status(myResponseObj.statusCode).json(
+      fail({
+        message: Array.isArray(message) ? message.join(', ') : String(message),
+        data: null,
+        meta: null,
+      }),
+    );
 
     this.logger.error(myResponseObj);
-
   }
 }

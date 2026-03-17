@@ -9,9 +9,8 @@ import { CategoryModule } from '../category/category.module';
 
 @Module({
   controllers: [ProductController],
-  providers: [ProductService,CategoryExistsRule],
-  exports:[ProductService],
-  imports:[CategoryModule]
-
+  providers: [ProductService, CategoryExistsRule],
+  exports: [ProductService],
+  imports: [CategoryModule],
 })
 export class ProductModule {}

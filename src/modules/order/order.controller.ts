@@ -15,6 +15,8 @@ import { Roles } from '../auth/decorator/role.decorator';
 import { RolesGuard } from '../auth/guards/role.guard';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { ok, paginatedOk } from 'src/common/base-response';
+import { RateOrderDto } from './dto/rate-order.dto';
+import { log } from 'util';
 
 @Controller('order')
 export class OrderController {
@@ -59,5 +61,13 @@ export class OrderController {
       message: 'order cancelled',
       data: cancelled,
     });
+  }
+
+  @Post('/rate')
+  async rateOrder(@Req() req, @Body() body: RateOrderDto) {
+    const userId = req.user.id;
+    const rate = await this.orderService.rateOrder(userId, body);
+    console.log('Order rated:', rate);
+    return rate;
   }
 }

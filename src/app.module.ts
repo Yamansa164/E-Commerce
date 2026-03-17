@@ -27,7 +27,6 @@ import { extname } from 'path';
     CartModule,
     OrderModule,
     PrismaModule,
-
   ],
   controllers: [],
   providers: [
